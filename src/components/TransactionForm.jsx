@@ -22,36 +22,70 @@ function TransactionForm({ addTransaction }) {
     const selectedType = event.target.value;
 
     setType(selectedType);
+    setTitle("");
 
-    // Reset category when switching type
     if (selectedType === "income") {
       setCategory("Salary");
-      setTitle("");
     } else {
       setCategory("Food");
+    }
+  };
+
+  const handleCategoryChange = (event) => {
+    setCategory(event.target.value);
+
+    // Clear transaction name when changing away from Other
+    if (event.target.value !== "Other") {
+      setTitle("");
     }
   };
 
   const handleSubmit = (event) => {
     event.preventDefault();
 
-    if (!amount) {
-      alert("Please enter an amount.");
+    /*
+      Transaction name is required when:
+      1. Type is expense
+      2. Type is income AND category is Other
+    */
+    const needsTransactionName =
+      type === "expense" ||
+      (type === "income" && category === "Other");
+
+    if (needsTransactionName && !title.trim()) {
+      alert("Please enter a transaction name.");
       return;
     }
 
-    // Expense requires a transaction name
-    if (type === "expense" && !title.trim()) {
-      alert("Please enter a transaction name.");
+    if (!amount || Number(amount) <= 0) {
+      alert("Please enter a valid amount.");
       return;
     }
 
     const newTransaction = {
       id: Date.now(),
-      title: type === "income" ? category : title,
+
+      /*
+        For Salary income:
+        title = Salary
+
+        For Other income:
+        title = whatever user entered
+
+        For expenses:
+        title = whatever user entered
+      */
+      title:
+        type === "income" && category === "Salary"
+          ? "Salary"
+          : title,
+
       amount: Number(amount),
+
       type,
+
       category,
+
       date: new Date().toISOString(),
     };
 
@@ -68,6 +102,16 @@ function TransactionForm({ addTransaction }) {
     }
   };
 
+  /*
+    Show transaction name when:
+    - Expense
+    OR
+    - Income + Other
+  */
+  const showTransactionName =
+    type === "expense" ||
+    (type === "income" && category === "Other");
+
   const categories =
     type === "income"
       ? incomeCategories
@@ -75,11 +119,12 @@ function TransactionForm({ addTransaction }) {
 
   return (
     <div className="transaction-form">
+
       <h2>Add Transaction</h2>
 
       <form onSubmit={handleSubmit}>
 
-        {/* Type FIRST */}
+        {/* TYPE */}
         <div className="form-group">
           <label>Type</label>
 
@@ -92,31 +137,13 @@ function TransactionForm({ addTransaction }) {
           </select>
         </div>
 
-        {/* Transaction name ONLY for expense */}
-        {type === "expense" && (
-          <div className="form-group">
-            <label>Transaction Name</label>
-
-            <input
-              type="text"
-              placeholder="e.g. Groceries"
-              value={title}
-              onChange={(event) =>
-                setTitle(event.target.value)
-              }
-            />
-          </div>
-        )}
-
-        {/* Category */}
+        {/* CATEGORY */}
         <div className="form-group">
           <label>Category</label>
 
           <select
             value={category}
-            onChange={(event) =>
-              setCategory(event.target.value)
-            }
+            onChange={handleCategoryChange}
           >
             {categories.map((item) => (
               <option key={item} value={item}>
@@ -126,31 +153,58 @@ function TransactionForm({ addTransaction }) {
           </select>
         </div>
 
-        {/* Amount */}
+        {/* TRANSACTION NAME */}
+        {showTransactionName && (
+          <div className="form-group">
+            <label>Transaction Name</label>
+
+            <input
+              type="text"
+              placeholder={
+                type === "income"
+                  ? "e.g. Freelance"
+                  : "e.g. Groceries"
+              }
+              value={title}
+              onChange={(event) =>
+                setTitle(event.target.value)
+              }
+            />
+          </div>
+        )}
+
+        {/* AMOUNT */}
         <div className="form-group">
           <label>Amount</label>
 
-          <input
-            type="number"
-            min="0"
-            placeholder="Enter amount"
-            value={amount}
-            onChange={(event) =>
-              setAmount(event.target.value)
-            }
-          />
+          <div className="amount-input">
+            <span>₹</span>
+
+            <input
+              type="number"
+              min="0"
+              placeholder="Enter amount"
+              value={amount}
+              onChange={(event) =>
+                setAmount(event.target.value)
+              }
+            />
+          </div>
         </div>
 
+        {/* BUTTON */}
         <button
           type="submit"
           className={
             type === "income"
-            ? "add-button income-button"
-            : "add-button expense-button"
-        }
-      >
-        {type === "income" ? "Add Income" : "Add Expense"}
-      </button>  
+              ? "add-button income-button"
+              : "add-button expense-button"
+          }
+        >
+          {type === "income"
+            ? "Add Income"
+            : "Add Expense"}
+        </button>
 
       </form>
     </div>
