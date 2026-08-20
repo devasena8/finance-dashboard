@@ -1,19 +1,19 @@
-function Header() {
+function Header({ onLogout }) {
   return (
     <header className="header">
 
       <div className="header-content">
 
-        <div>
-          <h1>💰 Finance Dashboard</h1>
-          <p>
-            Track your income and expenses
-          </p>
+        <div className="logo">
+          💰 Finance Dashboard
         </div>
 
-        <div className="header-icon">
-          💳
-        </div>
+        <button
+          className="logout-button"
+          onClick={onLogout}
+        >
+          Sign Out
+        </button>
 
       </div>
 

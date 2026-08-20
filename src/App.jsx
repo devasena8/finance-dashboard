@@ -6,74 +6,187 @@ import TransactionForm from "./components/TransactionForm";
 import TransactionList from "./components/TransactionList";
 import Charts from "./components/Charts";
 
-function App() {
-  const [transactions, setTransactions] = useState(() => {
-    const savedTransactions = localStorage.getItem("transactions");
+import Login from "./Login";
 
-    return savedTransactions
-      ? JSON.parse(savedTransactions)
-      : [];
-  });
+function App() {
+  const [isLoggedIn, setIsLoggedIn] = useState(
+    !!localStorage.getItem("token")
+  );
+
+  const [transactions, setTransactions] = useState([]);
 
   const [filter, setFilter] = useState("all");
   const [search, setSearch] = useState("");
 
-  // Save transactions whenever they change
+  // =========================
+  // CHECK LOGIN
+  // =========================
+
   useEffect(() => {
-    localStorage.setItem(
-      "transactions",
-      JSON.stringify(transactions)
-    );
-  }, [transactions]);
+    const token = localStorage.getItem("token");
 
-  // Add transaction
-  const addTransaction = (transaction) => {
-    setTransactions((previousTransactions) => [
-      ...previousTransactions,
-      transaction,
-    ]);
+    if (!token) {
+      setIsLoggedIn(false);
+      return;
+    }
+
+    // Verify token with backend
+    fetch("http://127.0.0.1:8000/auth/me", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Invalid token");
+        }
+
+        setIsLoggedIn(true);
+      })
+      .catch(() => {
+        localStorage.removeItem("token");
+        setIsLoggedIn(false);
+      });
+  }, []);
+
+  // =========================
+  // LOGIN
+  // =========================
+
+  const handleLogin = (data) => {
+    localStorage.setItem("token", data.access_token);
+    setIsLoggedIn(true);
   };
 
-  // Delete transaction
-  const deleteTransaction = (id) => {
-    setTransactions((previousTransactions) =>
-      previousTransactions.filter(
-        (transaction) => transaction.id !== id
-      )
-    );
+  // =========================
+  // LOGOUT
+  // =========================
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+
+    setTransactions([]);
+    setFilter("all");
+    setSearch("");
+
+    setIsLoggedIn(false);
   };
 
-  // Calculate income
+  // =========================
+  // ADD TRANSACTION
+  // =========================
+
+  const addTransaction = async (transaction) => {
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await fetch(
+        "http://127.0.0.1:8000/transactions",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(transaction),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to add transaction");
+      }
+
+      const newTransaction = await response.json();
+
+      setTransactions((previousTransactions) => [
+        ...previousTransactions,
+        newTransaction,
+      ]);
+    } catch (error) {
+      console.error(error);
+      alert("Could not add transaction");
+    }
+  };
+
+  // =========================
+  // DELETE TRANSACTION
+  // =========================
+
+  const deleteTransaction = async (id) => {
+    const token = localStorage.getItem("token");
+
+    try {
+      const response = await fetch(
+        `http://127.0.0.1:8000/transactions/${id}`,
+        {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to delete transaction");
+      }
+
+      setTransactions((previousTransactions) =>
+        previousTransactions.filter(
+          (transaction) => transaction.id !== id
+        )
+      );
+    } catch (error) {
+      console.error(error);
+      alert("Could not delete transaction");
+    }
+  };
+
+  // =========================
+  // CALCULATIONS
+  // =========================
+
   const totalIncome = transactions
     .filter((transaction) => transaction.type === "income")
     .reduce(
-      (total, transaction) => total + transaction.amount,
+      (total, transaction) =>
+        total + Number(transaction.amount),
       0
     );
 
-  // Calculate expenses
   const totalExpenses = transactions
     .filter((transaction) => transaction.type === "expense")
     .reduce(
-      (total, transaction) => total + transaction.amount,
+      (total, transaction) =>
+        total + Number(transaction.amount),
       0
     );
 
-  // Calculate balance
   const balance = totalIncome - totalExpenses;
 
-  // Filter transactions
+  // =========================
+  // FILTER
+  // =========================
+
   const filteredTransactions = transactions.filter(
     (transaction) => {
       const matchesFilter =
         filter === "all" ||
         transaction.type === filter;
 
+      const title =
+        transaction.title ||
+        transaction.transaction_name ||
+        "";
+
+      const category =
+        transaction.category || "";
+
       const matchesSearch =
-        transaction.title
+        title
           .toLowerCase()
           .includes(search.toLowerCase()) ||
-        transaction.category
+        category
           .toLowerCase()
           .includes(search.toLowerCase());
 
@@ -81,10 +194,26 @@ function App() {
     }
   );
 
+  // =========================
+  // SHOW LOGIN
+  // =========================
+
+  if (!isLoggedIn) {
+    return (
+      <Login
+        onLogin={handleLogin}
+      />
+    );
+  }
+
+  // =========================
+  // DASHBOARD
+  // =========================
+
   return (
     <div className="app">
 
-      <Header />
+      <Header onLogout={handleLogout} />
 
       <main className="container">
 

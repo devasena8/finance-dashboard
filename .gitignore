@@ -2,3 +2,36 @@ node_modules/
 dist/
 .env
 .env.local
+venv/
+__pychache__/
+*.pyc
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# Environment variables
+.env
+.env.*
+
+# PostgreSQL
+*.sql
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
