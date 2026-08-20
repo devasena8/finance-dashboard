@@ -141,11 +141,16 @@ function TransactionForm({ addTransaction }) {
           />
         </div>
 
-        <button type="submit">
-          {type === "income"
-            ? "Add Income"
-            : "Add Expense"}
-        </button>
+        <button
+          type="submit"
+          className={
+            type === "income"
+            ? "add-button income-button"
+            : "add-button expense-button"
+        }
+      >
+        {type === "income" ? "Add Income" : "Add Expense"}
+      </button>  
 
       </form>
     </div>
